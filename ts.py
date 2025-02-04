@@ -17,7 +17,6 @@ if tf.config.list_physical_devices('GPU'):
 else:
   print("TensorFlow **IS NOT** using the GPU")
 
-#data = tf.keras.utils.image_dataset_from_directory('data')
 
 #clean/import images
 data_dir = 'data' 
@@ -45,44 +44,12 @@ train = data.take(train_size)
 val = data.skip(train_size).take(val_size)
 test = data.skip(train_size + val_size).take(test_size)
 
-#import the model and layer information
+#implement the model
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout
 from tensorflow.keras.models import Sequential
 
-mnist = tf.keras.datasets.mnist
+model = sequential()
 
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train, x_test = x_train / 255.0, x_test / 255.0
-
-# Add a channels dimension
-x_train = x_train[..., tf.newaxis].astype("float32")
-x_test = x_test[..., tf.newaxis].astype("float32")
-
-train_ds = tf.data.Dataset.from_tensor_slices(
-    (x_train, y_train)).shuffle(10000).batch(32)
-
-test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
-
-#model information from tensorflow guide
-# class MyModel(Model):
-#   def __init__(self):
-#     super().__init__()
-#     self.conv1 = Conv2D(32, 3, activation='relu')
-#     self.flatten = Flatten()
-#     self.d1 = Dense(128, activation='relu')
-#     self.d2 = Dense(10)
-
-#   def call(self, x):
-#     x = self.conv1(x)
-#     x = self.flatten(x)
-#     x = self.d1(x)
-#     return self.d2(x)
-
-
-# Create an instance of the model
-#model = MyModel()
-
-model = Sequential()
 model.add(Conv2D(16, (3,3), 1, activation='relu', input_shape=(256,256,3)))
 model.add(MaxPooling2D())
 model.add(Conv2D(32, (3,3), 1, activation='relu'))
@@ -93,60 +60,53 @@ model.add(Flatten())
 model.add(Dense(256, activation='relu'))
 model.add(Dense(1, activation='sigmoid'))
 
+model.compile('adam', loss=tf.losses.BinaryCrossentropy(), metrics=['accuracy'])
 
-# loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+model.summary()
 
-# optimizer = tf.keras.optimizers.Adam()
+#model training
+logdir='logs'
 
-# train_loss = tf.keras.metrics.Mean(name='train_loss')
-# train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logdir)
+hist = model.fit(train, epochs = 10, validation_data=val, callbacks=[tensorboard_callback])
 
-# test_loss = tf.keras.metrics.Mean(name='test_loss')
-# test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+#performance plotting section (disabled for testing)
+fig = plt.figure()
+plt.plot(hist.history['loss'], color='teal', label='loss')
+plt.plot(hist.history['val_loss'], color='orange', label='val_loss')
+fig.suptitle('Loss', fontsize=20)
+plt.legend(loc="upper left")
+plt.show()
+fig = plt.figure()
+plt.plot(hist.history['accuracy'], color='teal', label='accuracy')
+plt.plot(hist.history['val_accuracy'], color='orange', label='val_accuracy')
+fig.suptitle('Accuracy', fontsize=20)
+plt.legend(loc="upper left")
+plt.show()
 
-# @tf.function
-# def train_step(images, labels):
-#   with tf.GradientTape() as tape:
-#     # training=True is only needed if there are layers with different
-#     # behavior during training versus inference (e.g. Dropout).
-#     predictions = model(images, training=True)
-#     loss = loss_object(labels, predictions)
-#   gradients = tape.gradient(loss, model.trainable_variables)
-#   optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+#evaluation of model
+from tensorflow.keras.metrics import Precision, Recall, Accuracy
 
-#   train_loss(loss)
-#   train_accuracy(labels, predictions)
+pre = Precicsion()
+re = Recall()
+acc = Accuracy()
 
-# @tf.function
-# def test_step(images, labels):
-#   # training=False is only needed if there are layers with different
-#   # behavior during training versus inference (e.g. Dropout).
-#   predictions = model(images, training=False)
-#   t_loss = loss_object(labels, predictions)
+for batch in test.as_numpy_iterator():
+    x, y = batch
+    y_pred = model.predict(x)
+    pre.update_state(y, y_pred)
+    re.update_state(y, y_pred)
+    acc.update_state(y, y_pred)
 
-#   test_loss(t_loss)
-#   test_accuracy(labels, predictions)
+print(pre.result(), re.result(), acc.result())
 
-# EPOCHS = 5
+#how to test an image:
+# import cv2
 
-# for epoch in range(EPOCHS):
-#   # Reset the metrics at the start of the next epoch
-#   train_loss.reset_state()
-#   train_accuracy.reset_state()
-#   test_loss.reset_state()
-#   test_accuracy.reset_state()
+# img = cv2.imread('154006829.jpg')
+# plt.imshow(img)
+# plt.show()
 
-#   for images, labels in train_ds:
-#     train_step(images, labels)
+# yhat = model.predict(np.expand_dims(resize/255, 0))
 
-#   for test_images, test_labels in test_ds:
-#     test_step(test_images, test_labels)
-
-#   print(
-#     f'Epoch {epoch + 1}, '
-#     f'Loss: {train_loss.result():0.2f}, '
-#     f'Accuracy: {train_accuracy.result() * 100:0.2f}, '
-#     f'Test Loss: {test_loss.result():0.2f}, '
-#     f'Test Accuracy: {test_accuracy.result() * 100:0.2f}'
-#   )
-
+#saving the model
