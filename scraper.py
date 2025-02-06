@@ -18,14 +18,14 @@ os.makedirs(FOLDER_NAME, exist_ok=True)
 dataFile = pd.read_csv(CSV_FILE)
 
 #data validation
-ITEM_COL = 'name'
+ITEM_COL = 'Name'
 
 if ITEM_COL not in dataFile.columns:
     raise ValueError(f"'{ITEM_COL}' column not found in the CSV file.")
 
 #put it all together, iterate over skus in the csv
-for name in dataFile[ITEM_COL]:
-    img_url = BASE_URL.format(name)
+for Name in dataFile[ITEM_COL]:
+    img_url = BASE_URL.format(Name)
 
     
     try:
@@ -35,11 +35,11 @@ for name in dataFile[ITEM_COL]:
 
         #open and save image
         image = Image.open(BytesIO(response.content))
-        image_path = os.path.join(FOLDER_NAME, f"{name}.jpg")
+        image_path = os.path.join(FOLDER_NAME, f"{Name}.jpg")
         image.save(image_path)
 
         print(f"Downloaded: {image_path}")
     except requests.exceptions.RequestException as e:
-        print(f"Failed to download {name}: {e}")
+        print(f"Failed to download {Name}: {e}")
 print('Download Complete')
     
