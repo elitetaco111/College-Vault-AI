@@ -18,3 +18,7 @@ Kirsten Dusterhoft
 This project aims to create a CNN for the purpose of classifying College Vault™ logos
 First iteration is going to be a proof of concept for Michigan College Vault™ logos
 Upon proof of concept, expand to other College Vault™ schools
+
+Includes Web Scraper for Image Gathering
+To use: include a file in the folder named data.csv which has a single column of skus with the column header "Name"
+-Note: column header is case sensitive, Netsuite should export with the column called Name but double check if not working
