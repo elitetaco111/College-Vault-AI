@@ -3,6 +3,7 @@ from tensorflow import keras
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+from keras.api.utils import to_categorical
 
 print("TensorFlow version:", tf.__version__)
 
@@ -21,39 +22,25 @@ tf.config.list_physical_devices('GPU')
 #import images
 import cv2
 import imghdr
-data_dir = 'data' 
-image_exts = ['.png']
-
-#cleaning images
-for image_class in os.listdir(data_dir):
-   for image in os.listdir(os.path.join(data_dir, image_class)):
-      image_path = os.path.join(data_dir, image_class, image)
-      try:
-         img = cv2.imread(image_path)
-         tip = imghdr.what(image_path)
-         if tip not in image_exts:
-            print('Image not in ext list {}'.format(image_path))
-            os.remove(image_path)
-      except Exception as e:
-         print('Issue with image{}' .format(image_path))
-         # os.remove(image_path)
 
 #load data
-data = tf.keras.utils.image_dataset_from_directory('data', shuffle = False)
-data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
-tf.keras.utils.image_dataset_from_directory('data', batch_size = 50, image_size=(230,230))
+data = tf.keras.utils.image_dataset_from_directory('Images', shuffle=True, batch_size=50, image_size=(730, 730))
 data_iterator = data.as_numpy_iterator()
 batch = data_iterator.next()
-fig, ax = plt.subplots(ncols = 4, figsize = (20,20))
-for idx, image in enumerate(batch[0][:4]):
-    ax[idx].imshow(image.astype(int))
-    ax[idx].title.set_text(batch[1][idx])
 
-#scale data (?)
-data = data.map(lambda x, y: (x/255, y))
-data.as_numpy_iterator().next()
+#image normalization
+normalization_layer = tf.keras.layers.Rescaling(1./255)
+data = data.map(lambda x, y: (normalization_layer(x), y))
 
-#split data into training and testing (maybe not needed later)
+#one hot encode labels for ML
+def one_hot_encode(image, label):
+    label = tf.one_hot(label, depth=11) #11 is the number of classes
+    return image, label
+
+data = data.map(one_hot_encode)
+
+# Shuffle and split data into train, validation, and test sets
+data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
 train_size = int(len(data) * 0.7)
 val_size = int(len(data) * 0.2)
 test_size = int(len(data) * 0.1)
@@ -66,20 +53,24 @@ test = data.skip(train_size + val_size).take(test_size)
 from keras.api.models import Sequential
 from keras.api.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout
 
-
+#model used
 model = Sequential()
 
-model.add(Conv2D(16, (3,3), 1, activation='relu', input_shape=(256,256,3)))
+#model layers
+model.add(Conv2D(16, (3,3), 1, activation='relu', input_shape=(730,730,3)))
 model.add(MaxPooling2D())
 model.add(Conv2D(32, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
 model.add(Conv2D(16, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
+model.add(Conv2D(32, (3,3), 1, activation='relu'))
+model.add(MaxPooling2D())
 model.add(Flatten())
 model.add(Dense(256, activation='relu'))
-model.add(Dense(1, activation='sigmoid'))
+model.add(Dense(11, activation='softmax')) #11 is number of output classes
+model.add(Dropout(0.2))
 
-model.compile('adam', loss=tf.losses.BinaryCrossentropy(), metrics=['accuracy'])
+model.compile('adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 model.summary()
 
@@ -117,8 +108,7 @@ for batch in test.as_numpy_iterator():
     re.update_state(y, y_pred)
     acc.update_state(y, y_pred)
 
-print(pre.result(), re.result(), acc.result())
-
+print(pre.result().numpy(), re.result().numpy(), acc.result().numpy())
 
 #how to test an image:
 
@@ -133,16 +123,19 @@ plt.show()
 yhat = model.predict(np.expand_dims(resize/255, 0))
 
 
-#Binary classification (UPDATE FOR MULTICLASSIFICATION)
-if yhat > 0.5:
-    print('Sad')
-else:
-   print('Happy')
+#Classifier
+yhat = model.predict(np.expand_dims(resize / 255, 0))
+predicted_class = np.argmax(yhat, axis=1)
+print(f'Predicted class: {predicted_class}') #will print one-hot encoded class
 
 
 #Save the model
 from keras.api.models import load_model
+
 model.save(os.path.join('models', 'model.h5'))
 new_model = load_model('model.h5')
-new_model.predict(np.expand_dims(resize/255, 0))
+new_yhat = new_model.predict(np.expand_dims(resize / 255, 0))
+new_predicted_class = np.argmax(new_yhat, axis=1)
+print(f'Predicted class with loaded model: {new_predicted_class}')
 
+#TODO: optimize output display (one-hot to string) and model saving logic

@@ -19,6 +19,11 @@ This project aims to create a CNN for the purpose of classifying College Vault�
 First iteration is going to be a proof of concept for Michigan College Vault™ logos
 Upon proof of concept, expand to other College Vault™ schools
 
+Current Version is set up to handle classifying images into 11 different classes
+Input requires folder named "Images" (created by scraper)
+Output is currently a one-hot encoded class printed to console
+Model is saved as model.h5 in the folder
+
 Includes Web Scraper for Image Gathering
 To use: include a file in the folder named data.csv which has a single column of skus with the column header "Name"
--Note: column header is case sensitive, Netsuite should export with the column called Name but double check if not working
+-Note: column header is case sensitive, Netsuite should export with the column called Name, double check if not working
