@@ -19,12 +19,22 @@ for gpu in gpus:
    tf.config.experimental.set_memory_growth(gpu, True)
 tf.config.list_physical_devices('GPU')
 
-#import images
+#import image processing libraries
 import cv2
 import imghdr
 
+#image augmentation for training
+img_gen = tf.keras.preprocessing.image.ImageDataGenerator(
+    rescale=1./255,
+    horizontal_flip=True,
+)
+
+#specify number of classes
+num_classes = 16
+BATCH_SIZE = 64
+
 #load data
-data = tf.keras.utils.image_dataset_from_directory('Images', shuffle=True, batch_size=50, image_size=(730, 730))
+data = tf.keras.utils.image_dataset_from_directory('Images', shuffle=True, batch_size=BATCH_SIZE, image_size=(730, 730))
 data_iterator = data.as_numpy_iterator()
 batch = data_iterator.next()
 
@@ -34,7 +44,7 @@ data = data.map(lambda x, y: (normalization_layer(x), y))
 
 #one hot encode labels for ML
 def one_hot_encode(image, label):
-    label = tf.one_hot(label, depth=11) #11 is the number of classes
+    label = tf.one_hot(label, depth=num_classes) 
     return image, label
 
 data = data.map(one_hot_encode)
@@ -48,6 +58,11 @@ test_size = int(len(data) * 0.1)
 train = data.take(train_size)
 val = data.skip(train_size).take(val_size)
 test = data.skip(train_size + val_size).take(test_size)
+
+#image augmentation
+train = tf.data.Dataset.from_generator(
+    lambda: img_gen.flow_from_directory('Images', batch_size=BATCH_SIZE, shuffle=True, class_mode='sparse'),
+    output_types=(tf.float32, tf.float32))
 
 #implement the model
 from keras.api.models import Sequential
@@ -67,7 +82,7 @@ model.add(Conv2D(32, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
 model.add(Flatten())
 model.add(Dense(256, activation='relu'))
-model.add(Dense(11, activation='softmax')) #11 is number of output classes
+model.add(Dense(num_classes, activation='softmax'))
 model.add(Dropout(0.2))
 
 model.compile('adam', loss='categorical_crossentropy', metrics=['accuracy'])
