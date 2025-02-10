@@ -6,7 +6,6 @@
 *.jar
 *.rar
 *.tar
-*.zip
 .DS_Store
 .DS_Store?
 ._*
@@ -26,3 +25,4 @@ Thumbs.db
 *.jpg
 *.png
 *.v2
+*.keras

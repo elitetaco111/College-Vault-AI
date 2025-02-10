@@ -4,13 +4,13 @@ import os
 # Define augmentation functions using tf.image
 def augment_image(image):
     image = tf.image.random_flip_left_right(image)  # Random horizontal flip
-    image = tf.image.random_brightness(image, max_delta=0.2)  # Random brightness
+    image = tf.image.random_brightness(image, max_delta=0.3)  # Random brightness
     image = tf.image.random_contrast(image, lower=0.8, upper=1.2)  # Random contrast
-    image = tf.image.random_saturation(image, lower=0.8, upper=1.2)  # Adjust saturation
+    image = tf.image.random_saturation(image, lower=0.75, upper=1.25)  # Adjust saturation
     #image = tf.image.resize_with_crop_or_pad(image, 730, 730)  # Ensure consistent size
     return image
 
-def augment_and_save_images(input_dir, output_dir, num_augmentations=20):
+def augment_and_save_images(input_dir, output_dir, num_augmentations=1023):
     os.makedirs(output_dir, exist_ok=True)
 
     for class_name in os.listdir(input_dir):
@@ -25,7 +25,7 @@ def augment_and_save_images(input_dir, output_dir, num_augmentations=20):
                 # Load image
                 image = tf.io.read_file(img_path)
                 image = tf.image.decode_jpeg(image, channels=3)  # Decode to tensor
-                image = tf.image.resize(image, (256, 256))  # Resize
+                #image = tf.image.resize(image, (730, 730))  # Resize
                 image = tf.cast(image, tf.uint8)  # Ensure correct type
 
                 # Generate and save augmented images
@@ -36,9 +36,9 @@ def augment_and_save_images(input_dir, output_dir, num_augmentations=20):
 
 # Define dataset paths
 input_directory = "Images"
-output_directory = "augmented_images"
+output_directory = "Images"
 
 # Run augmentation and save images
-augment_and_save_images(input_directory, output_directory, num_augmentations=20)
+augment_and_save_images(input_directory, output_directory, num_augmentations=1023)
 
 print("Augmented images saved successfully!")
