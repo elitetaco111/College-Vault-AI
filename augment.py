@@ -10,7 +10,7 @@ def augment_image(image):
     #image = tf.image.resize_with_crop_or_pad(image, 730, 730)  # Ensure consistent size
     return image
 
-def augment_and_save_images(input_dir, output_dir, num_augmentations=255):
+def augment_and_save_images(input_dir, output_dir, num_augmentations=1):
     os.makedirs(output_dir, exist_ok=True)
 
     for class_name in os.listdir(input_dir):
@@ -39,6 +39,6 @@ input_directory = "Images"
 output_directory = "Images"
 
 # Run augmentation and save images
-augment_and_save_images(input_directory, output_directory, num_augmentations=255)
+augment_and_save_images(input_directory, output_directory, num_augmentations=7)
 
 print("Augmented images saved successfully!")

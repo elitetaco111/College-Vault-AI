@@ -35,8 +35,9 @@ IMAGE_SIZE = (880, 500)
 EPOCH_COUNT = 5
 
 #load data from directory
-data = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="training", shuffle=True, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
-data_iterator = data.as_numpy_iterator()
+train = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="training", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
+val = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="validation", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
+data_iterator = train.as_numpy_iterator()
 batch = data_iterator.next()
 
 
@@ -46,21 +47,21 @@ def one_hot_encode(image, label):
     label = tf.one_hot(label, depth=num_classes) 
     return image, label
 
-data = data.map(one_hot_encode)
+data = train.map(one_hot_encode)
+val = val.map(one_hot_encode)
 
 #pixel normalization (0-1)
 normalization_layer = tf.keras.layers.Rescaling(1./255)
 data = data.map(lambda x, y: (normalization_layer(x), y))
+val = val.map(lambda x, y: (normalization_layer(x), y))
 
-# Shuffle and split data into train, validation, and test sets
+# Shuffle and split data into train, validation, and test sets (DEPRECATED)
 #data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
-cardinality = tf.data.experimental.cardinality(data).numpy()
-train_size = int(cardinality * 0.8)
-val_size = int(cardinality * 0.2)
-
-
-train = data.take(train_size)
-val = data.skip(train_size).take(val_size)
+# cardinality = tf.data.experimental.cardinality(data).numpy()
+# train_size = int(cardinality * 0.8)
+# val_size = int(cardinality * 0.2)
+# train = data.take(train_size)
+# val = data.skip(train_size).take(val_size)
 
 #train set collection (more custom)
 # train = tf.data.Dataset.from_generator(
