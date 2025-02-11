@@ -5,7 +5,7 @@ import os
 from keras.api.preprocessing import image
 
 #load the trained model
-model_path = "my_model.keras"  #Replace with your model's path
+model_path = "modelv0.8.0.keras"  #Replace with your model's path
 model = tf.keras.models.load_model(model_path)
 
 #class labels

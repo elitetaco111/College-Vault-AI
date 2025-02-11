@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 #constant vars
 CSV_FILE = 'data.csv'
-FOLDER_NAME = 'Images'
+FOLDER_NAME = 'scraped_images'
 BASE_URL = 'https://media.rallyhouse.com/homepage/{}-1.jpg?tx=f_auto,c_fit,w_730,h_730'
 
 #create the folder to store scraped images

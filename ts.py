@@ -30,8 +30,9 @@ import imghdr
 
 #GLOBAL VARS
 num_classes = 10
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 IMAGE_SIZE = (880, 500)
+EPOCH_COUNT = 5
 
 #load data from directory
 data = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="training", shuffle=True, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
@@ -108,7 +109,7 @@ logdir='logs'
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logdir)
 #progbar_logger = tf.keras.callbacks.ProgbarLogger(count_mode="steps")
 #hist = model.fit(train, epochs = 10, validation_data=val, callbacks=[tensorboard_callback])
-history = model.fit(data, epochs=10, validation_data=val, callbacks=[tensorboard_callback])
+history = model.fit(data, epochs=EPOCH_COUNT, validation_data=val, callbacks=[tensorboard_callback])
 
 # plt.plot(history.history['accuracy'], label='accuracy')
 # plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
