@@ -3,7 +3,6 @@ from tensorflow import keras
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from keras.api.utils import to_categorical
 
 print("TensorFlow version:", tf.__version__)
 
@@ -53,7 +52,7 @@ normalization_layer = tf.keras.layers.Rescaling(1./255)
 data = data.map(lambda x, y: (normalization_layer(x), y))
 
 # Shuffle and split data into train, validation, and test sets
-data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
+#data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
 cardinality = tf.data.experimental.cardinality(data).numpy()
 train_size = int(cardinality * 0.8)
 val_size = int(cardinality * 0.2)
@@ -78,10 +77,6 @@ for image, label in train.take(1):
 from keras.api.models import Sequential
 from keras.api.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Rescaling, InputLayer
 
-#Memory/Cache optimization
-AUTOTUNE = tf.data.AUTOTUNE
-train = train.cache().prefetch(buffer_size=AUTOTUNE)
-val = val.cache().prefetch(buffer_size=AUTOTUNE)
 
 #model used
 model = Sequential()
@@ -113,21 +108,16 @@ logdir='logs'
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logdir)
 #progbar_logger = tf.keras.callbacks.ProgbarLogger(count_mode="steps")
 #hist = model.fit(train, epochs = 10, validation_data=val, callbacks=[tensorboard_callback])
-mod = model.fit(data, epochs=10, validation_data=val, callbacks=[tensorboard_callback])
+history = model.fit(data, epochs=10, validation_data=val, callbacks=[tensorboard_callback])
 
-#performance plotting section (disabled for testing)
-# fig = plt.figure()
-# plt.plot(hist.history['loss'], color='teal', label='loss')
-# plt.plot(hist.history['val_loss'], color='orange', label='val_loss')
-# fig.suptitle('Loss', fontsize=20)
-# plt.legend(loc="upper left")
-# plt.show()
-# fig = plt.figure()
-# plt.plot(hist.history['accuracy'], color='teal', label='accuracy')
-# plt.plot(hist.history['val_accuracy'], color='orange', label='val_accuracy')
-# fig.suptitle('Accuracy', fontsize=20)
-# plt.legend(loc="upper left")
-# plt.show()
+# plt.plot(history.history['accuracy'], label='accuracy')
+# plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+# plt.xlabel('Epoch')
+# plt.ylabel('Accuracy')
+# plt.ylim([0.5, 1])
+# plt.legend(loc='lower right')
+
+# test_loss, test_acc = model.evaluate(val, verbose=2)
 
 #evaluation of model
 # from keras.api.metrics import Precision, Recall, Accuracy
@@ -144,19 +134,6 @@ mod = model.fit(data, epochs=10, validation_data=val, callbacks=[tensorboard_cal
 #     acc.update_state(y, y_pred)
 
 # print(pre.result().numpy(), re.result().numpy(), acc.result().numpy())
-
-#how to test an image:
-
-# img = cv2.imread('73JVTZWLhg.png')
-# plt.imshow(img)
-# plt.show()
-
-# resize = tf.image.resize(img, (880, 500))
-# plt.imshow(resize.numpy().astype(int))
-# plt.show()
-
-# yhat = model.predict(np.expand_dims(resize/255, 0))
-
 
 #Classifier
 # yhat = model.predict(np.expand_dims(resize / 255, 0))
