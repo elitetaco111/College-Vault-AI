@@ -19,10 +19,6 @@ for gpu in gpus:
    tf.config.experimental.set_memory_growth(gpu, True)
 tf.config.list_physical_devices('GPU')
 
-#import image processing libraries
-import cv2
-import imghdr
-
 #divide all color vals by max to normalize 0-1 (for more custom data)
 # img_gen = tf.keras.preprocessing.image.ImageDataGenerator(
 #     rescale=1./255,
@@ -33,42 +29,30 @@ import imghdr
 num_classes = 10
 BATCH_SIZE = 8
 IMAGE_SIZE = (880, 500)
+NUM_EPOCHS = 4
+IMG_DIR = 'aug_images'
 
 #load data from directory
-data = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="training", shuffle=True, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
-data_iterator = data.as_numpy_iterator()
+train = tf.keras.utils.image_dataset_from_directory(IMG_DIR, seed = 123, validation_split = 0.2, subset="training", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
+val = tf.keras.utils.image_dataset_from_directory(IMG_DIR, seed = 123, validation_split = 0.2, subset="validation", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
+data_iterator = train.as_numpy_iterator()
 batch = data_iterator.next()
 
-
-#one hot encode labels for ML
+#one hot encode label function
 def one_hot_encode(image, label):
     label = tf.cast(label, tf.int32)
     label = tf.one_hot(label, depth=num_classes) 
     return image, label
 
-data = data.map(one_hot_encode)
+#one-hot encode labels
+train = train.map(one_hot_encode)
+val = val.map(one_hot_encode)
 
 #pixel normalization (0-1)
 normalization_layer = tf.keras.layers.Rescaling(1./255)
-data = data.map(lambda x, y: (normalization_layer(x), y))
+train = train.map(lambda x, y: (normalization_layer(x), y))
+val = val.map(lambda x, y: (normalization_layer(x), y))
 
-# Shuffle and split data into train, validation, and test sets
-#data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
-cardinality = tf.data.experimental.cardinality(data).numpy()
-train_size = int(cardinality * 0.8)
-val_size = int(cardinality * 0.2)
-
-
-train = data.take(train_size)
-val = data.skip(train_size).take(val_size)
-
-#train set collection (more custom)
-# train = tf.data.Dataset.from_generator(
-#     lambda: img_gen.flow_from_directory('Images', target_size=IMAGE_SIZE, batch_size=BATCH_SIZE, shuffle=True, class_mode='sparse'),
-#     output_signature=(tf.TensorSpec(shape=(BATCH_SIZE, 880, 500, 3), dtype=tf.float32), tf.TensorSpec(shape=(BATCH_SIZE,), dtype=tf.float32))
-# )
-#One-Hot Encoding
-#train = train.map(one_hot_encode)
 
 #check shape of data
 for image, label in train.take(1):
@@ -76,21 +60,27 @@ for image, label in train.take(1):
 
 #implement the model
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Rescaling, InputLayer
+from keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Rescaling, InputLayer, RandomRotation, RandomZoom, RandomFlip
 
 #Memory/Cache optimization
 AUTOTUNE = tf.data.AUTOTUNE
 train = train.cache().prefetch(buffer_size=AUTOTUNE)
 val = val.cache().prefetch(buffer_size=AUTOTUNE)
 
+#image augmentor
+# augment = Sequential()
+# augment.add(RandomFlip('horizontal'))
+# augment.add(RandomRotation(0.1))
+# augment.add(RandomZoom(0.1))
+
+
+# augment(train)
 #model used
 model = Sequential()
 
-#input_layer = InputLayer(shape=(880, 500, 3))
 #model layers
 #model.add(Rescaling(1./255))
-#model.add(InputLayer(shape=(880, 500, 3)))
-model.add(Conv2D(32, (3,3), 1, activation='relu',  input_shape=(880,500,3)))
+model.add(Conv2D(32, (3,3), 1, activation='relu', input_shape=(880,500,3)))
 model.add(MaxPooling2D())
 model.add(Conv2D(16, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
@@ -113,7 +103,7 @@ logdir='logs'
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logdir)
 #progbar_logger = tf.keras.callbacks.ProgbarLogger(count_mode="steps")
 #hist = model.fit(train, epochs = 10, validation_data=val, callbacks=[tensorboard_callback])
-history = model.fit(data, epochs=100, validation_data=val, callbacks=[tensorboard_callback])
+history = model.fit(train, epochs=NUM_EPOCHS, validation_data=val, callbacks=[tensorboard_callback])
 
 plt.plot(history.history['accuracy'], label='accuracy')
 plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
