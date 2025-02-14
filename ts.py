@@ -1,5 +1,4 @@
 import tensorflow as tf
-from tensorflow import keras
 import os
 import numpy as np
 from matplotlib import pyplot as plt
@@ -29,14 +28,15 @@ import imghdr
 # )
 
 #GLOBAL VARS
-num_classes = 10
+num_classes = 7
 BATCH_SIZE = 16
-IMAGE_SIZE = (880, 500)
-EPOCH_COUNT = 5
+IMAGE_SIZE = (730, 730)
+EPOCH_COUNT = 10
+IMAGE_SHAPE = (730, 730, 3)
 
 #load data from directory
-train = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="training", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
-val = tf.keras.utils.image_dataset_from_directory('Images', seed = 123, validation_split = 0.2, subset="validation", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
+train = tf.keras.utils.image_dataset_from_directory('clean_images', seed = 123, validation_split = 0.2, subset="training", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
+val = tf.keras.utils.image_dataset_from_directory('clean_images', seed = 123, validation_split = 0.2, subset="validation", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, color_mode='rgb')
 data_iterator = train.as_numpy_iterator()
 batch = data_iterator.next()
 
@@ -51,9 +51,9 @@ data = train.map(one_hot_encode)
 val = val.map(one_hot_encode)
 
 #pixel normalization (0-1)
-normalization_layer = tf.keras.layers.Rescaling(1./255)
-data = data.map(lambda x, y: (normalization_layer(x), y))
-val = val.map(lambda x, y: (normalization_layer(x), y))
+#normalization_layer = tf.keras.layers.Rescaling(1./255)
+#data = data.map(lambda x, y: (normalization_layer(x), y))
+#val = val.map(lambda x, y: (normalization_layer(x), y))
 
 # Shuffle and split data into train, validation, and test sets (DEPRECATED)
 #data = data.shuffle(1000, seed=100, reshuffle_each_iteration=False)
@@ -77,27 +77,30 @@ for image, label in train.take(1):
 
 #implement the model
 from keras.api.models import Sequential
-from keras.api.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Rescaling, InputLayer
+from keras.api.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Rescaling, InputLayer, RandomRotation, RandomZoom
 
+#augmentation layer in the model (decrease overmatch)
+augment = Sequential()
+augment.add(RandomRotation(0.1))
+augment.add(RandomZoom(0.1))
 
-#model used
+#Full DNN Keras model
 model = Sequential()
 
-#input_layer = InputLayer(shape=(880, 500, 3))
-#model layers
-#model.add(Rescaling(1./255))
-model.add(InputLayer(shape=(880, 500, 3)))
-model.add(Conv2D(32, (3,3), 1, activation='relu'))
-model.add(MaxPooling2D())
+model.add(InputLayer(shape=IMAGE_SHAPE))
+model.add(augment)
+model.add(Rescaling(1./255))
 model.add(Conv2D(16, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
 model.add(Conv2D(32, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
-model.add(Conv2D(16, (3,3), 1, activation='relu'))
+model.add(Conv2D(64, (3,3), 1, activation='relu'))
 model.add(MaxPooling2D())
+#model.add(Conv2D(32, (3,3), 1, activation='relu'))
+#model.add(MaxPooling2D())
+model.add(Dropout(0.2))
 model.add(Flatten())
 model.add(Dense(256, activation='relu'))
-model.add(Dropout(0.2))
 model.add(Dense(num_classes, activation='softmax'))
 
 model.compile('adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -146,7 +149,7 @@ history = model.fit(data, epochs=EPOCH_COUNT, validation_data=val, callbacks=[te
 #Save the model
 #from keras.api.models import load_model
 
-model.save(os.path.join('modelv0.8.0.keras'))
+model.save(os.path.join('modelv0.8.1.keras'))
 # new_model = load_model('model.h5')
 # new_yhat = new_model.predict(np.expand_dims(resize / 255, 0))
 # new_predicted_class = np.argmax(new_yhat, axis=1)
