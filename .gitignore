@@ -23,6 +23,7 @@ Thumbs.db
 *.o
 *.so
 *.jpg
+*.jpeg
 *.png
 *.v2
 *.keras
