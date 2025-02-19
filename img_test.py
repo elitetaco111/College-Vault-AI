@@ -3,11 +3,11 @@ import numpy as np
 from keras.api.preprocessing import image
 
 #Load the trained model
-model_path = "modelv0.8.0.keras"  #model's path
+model_path = "modelv0.8.1.keras"  #model's path
 model = tf.keras.models.load_model(model_path)
 
 #Function to preprocess an image
-def preprocess_image(img_path, target_size=(880, 500)):  #Adjust target size
+def preprocess_image(img_path, target_size=(730, 730)):  #Adjust target size
     img = image.load_img(img_path, target_size=target_size)
     img_array = image.img_to_array(img) / 255.0  #Normalize to [0,1] range
     img_array = np.expand_dims(img_array, axis=0)  #Add batch dimension
